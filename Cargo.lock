@@ -152,6 +152,7 @@ dependencies = [
  "axum-core",
  "bytes",
  "http",
+ "tracing",
 ]
 
 [[package]]

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}microchan{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="site-header">
+  <a class="logo" href="/">microchan</a>
+  <nav class="board-nav">
+    {% for b in boards %}
+    <a href="/{{ b.short }}/"{% if b.nsfw %} class="nsfw"{% endif %} title="{{ b.title }}">/{{ b.short }}/</a>
+    {% endfor %}
+  </nav>
+</header>
+<main class="content">
+{% block content %}{% endblock %}
+</main>
+<footer class="site-footer">
+  <a href="/mod/">moderator</a>
+</footer>
+</body>
+</html>

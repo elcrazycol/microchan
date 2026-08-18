@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}microchan — boards{% endblock %}
+
+{% block content %}
+<section class="board-list">
+  <h1>Boards</h1>
+  <table class="board-table">
+    <tbody>
+    {% for b in boards %}
+      <tr>
+        <td class="board-short">
+          <a href="/{{ b.short }}/">/{{ b.short }}/</a>{% if b.nsfw %}<span class="nsfw-tag">NSFW</span>{% endif %}
+        </td>
+        <td class="board-title">{{ b.title }}</td>
+        <td class="board-desc">{{ b.description }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

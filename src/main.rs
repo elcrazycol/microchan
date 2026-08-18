@@ -2,12 +2,14 @@ mod config;
 mod db;
 mod error;
 mod models;
+mod routes;
 mod state;
+mod views;
 
 use std::net::SocketAddr;
 
-use axum::routing::get;
 use axum::Router;
+use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
@@ -30,11 +32,16 @@ async fn main() -> anyhow::Result<()> {
         config.server.data_dir
     );
 
+    std::fs::create_dir_all(&config.server.data_dir)?;
+
     let pool = db::connect_and_migrate(&config).await?;
     let state = AppState::new(config.clone(), pool);
 
     let app = Router::new()
-        .route("/health", get(handler_health))
+        .route("/health", axum::routing::get(handler_health))
+        .merge(routes::router())
+        .nest_service("/static", ServeDir::new("static"))
+        .nest_service("/files", ServeDir::new(&config.server.data_dir))
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
