@@ -20,9 +20,9 @@
       <div class="file{% if f.spoiler %} spoiler{% endif %}">
         <a href="/files/{{ p.board }}/src/{{ f.stored_name }}">
           {% if f.is_video %}
-          <video class="thumb" src="/files/{{ p.board }}/thumb/{{ f.stored_name }}" muted preload="metadata"></video>
+          <video class="thumb" src="/files/{{ p.board }}/thumb/{{ f.thumb_name }}" muted preload="metadata"></video>
           {% else %}
-          <img class="thumb" src="/files/{{ p.board }}/thumb/{{ f.stored_name }}" alt="" loading="lazy">
+          <img class="thumb" src="/files/{{ p.board }}/thumb/{{ f.thumb_name }}" alt="" loading="lazy">
           {% endif %}
         </a>
         <span class="fname" title="{{ f.original_name }}">{{ f.original_name }}</span>
@@ -40,7 +40,7 @@
 {% endmacro %}
 
 {% macro post_form(action, is_thread) %}
-<form class="post-form" action="{{ action }}" method="post" autocomplete="off">
+<form class="post-form" action="{{ action }}" method="post" enctype="multipart/form-data" autocomplete="off">
   <table>
     <tr>
       <th>Name</th>
@@ -58,7 +58,15 @@
     {% endif %}
     <tr>
       <th>Comment</th>
-      <td><textarea name="body" required></textarea></td>
+      <td><textarea name="body"></textarea></td>
+    </tr>
+    <tr>
+      <th>File</th>
+      <td><input type="file" name="file" multiple></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td><label><input type="checkbox" name="spoiler" value="on"> Spoiler image</label></td>
     </tr>
     <tr>
       <td></td>

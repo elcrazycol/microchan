@@ -125,6 +125,8 @@ pub struct MediaConfig {
     pub thumb_quality: u8,
     /// Максимальная длительность видео (секунды), 0 = без ограничения.
     pub max_video_seconds: u32,
+    /// Максимум пикселей картинки (ширина × высота), 0 = без ограничения.
+    pub max_image_pixels: u64,
 }
 
 impl Default for MediaConfig {
@@ -134,6 +136,7 @@ impl Default for MediaConfig {
             thumb_height: 200,
             thumb_quality: 80,
             max_video_seconds: 0,
+            max_image_pixels: 50_000_000,
         }
     }
 }

@@ -2,6 +2,7 @@ mod config;
 mod db;
 mod error;
 mod markup;
+mod media;
 mod models;
 mod repo;
 mod routes;

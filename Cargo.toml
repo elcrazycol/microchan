@@ -7,7 +7,7 @@ edition = "2024"
 anyhow = "1.0.104"
 askama = "0.16.0"
 askama_web = { version = "0.16.0", features = ["axum-0.8", "tracing-0.1"] }
-axum = "0.8.9"
+axum = { version = "0.8.9", features = ["multipart"] }
 base64 = "0.23.1"
 chrono = "0.4.45"
 dotenvy = "0.15.7"
@@ -15,6 +15,7 @@ encoding_rs = "0.8.35"
 futures-util = "0.3.34"
 hmac = "0.13.0"
 image = { version = "0.25.10", features = ["jpeg", "png", "webp", "gif"] }
+infer = "0.22.0"
 ipnet = { version = "2.12.1", features = ["serde"] }
 mime_guess = "2.0.5"
 rand = "0.10.2"

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 use sqlx::PgPool;
 
+use crate::media::Stored;
 use crate::models::{FileRow, PostRow, ThreadRow};
 
 /// Тред для отображения на странице доски.
@@ -228,7 +229,7 @@ pub async fn thread_data(
     }))
 }
 
-/// Создаёт тред (пост-ОП + запись треда). Возвращает id треда.
+/// Создаёт тред (пост-ОП + запись треда + файлы). Возвращает id треда.
 pub async fn create_thread(
     pool: &PgPool,
     board: &str,
@@ -238,6 +239,7 @@ pub async fn create_thread(
     email: Option<&str>,
     subject: Option<&str>,
     body: &str,
+    files: &[Stored],
 ) -> Result<i64> {
     let mut tx = pool.begin().await.context("begin tx")?;
     let post_id: i64 = sqlx::query_scalar!(
@@ -264,6 +266,8 @@ pub async fn create_thread(
     .await
     .context("insert thread")?;
 
+    insert_files(&mut tx, post_id, files).await?;
+
     tx.commit().await.context("commit thread")?;
     Ok(post_id)
 }
@@ -280,6 +284,7 @@ pub async fn create_reply(
     email: Option<&str>,
     body: &str,
     bump_limit: usize,
+    files: &[Stored],
 ) -> Result<i64> {
     let mut tx = pool.begin().await.context("begin tx")?;
 
@@ -337,8 +342,38 @@ pub async fn create_reply(
         .context("update thread count")?;
     }
 
+    insert_files(&mut tx, post_id, files).await?;
+
     tx.commit().await.context("commit reply")?;
     Ok(post_id)
+}
+
+/// Вставляет записи файлов поста в рамках транзакции.
+async fn insert_files(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    post_id: i64,
+    files: &[Stored],
+) -> Result<()> {
+    for f in files {
+        sqlx::query!(
+            "INSERT INTO files (post_id, original_name, stored_name, thumb_name, mime, size, width, height, sha256, spoiler)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+            post_id,
+            f.original_name,
+            f.stored_name,
+            f.thumb_name,
+            f.mime,
+            f.size,
+            f.width,
+            f.height,
+            f.sha256,
+            f.spoiler,
+        )
+        .execute(&mut **tx)
+        .await
+        .context("insert file")?;
+    }
+    Ok(())
 }
 
 async fn query_scalar_count_threads(pool: &PgPool, board: &str) -> Result<i64> {

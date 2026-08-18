@@ -39,6 +39,7 @@ pub struct IndexTemplate {
 #[derive(Debug, Clone)]
 pub struct FileView {
     pub stored_name: String,
+    pub thumb_name: String,
     pub original_name: String,
     pub mime: String,
     pub width: Option<i32>,
@@ -53,6 +54,7 @@ impl FileView {
         let is_video = matches!(f.mime.as_str(), "video/webm" | "video/mp4");
         Self {
             stored_name: f.stored_name.clone(),
+            thumb_name: f.thumb_name.clone(),
             original_name: f.original_name.clone(),
             mime: f.mime.clone(),
             width: f.width,

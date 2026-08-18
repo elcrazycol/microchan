@@ -40,6 +40,7 @@ pub struct FileRow {
     pub post_id: i64,
     pub original_name: String,
     pub stored_name: String,
+    pub thumb_name: String,
     pub mime: String,
     pub size: i64,
     pub width: Option<i32>,

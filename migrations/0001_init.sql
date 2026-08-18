@@ -38,6 +38,7 @@ CREATE TABLE files (
     post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
     original_name TEXT NOT NULL,
     stored_name TEXT NOT NULL,
+    thumb_name TEXT NOT NULL,
     mime TEXT NOT NULL,
     size BIGINT NOT NULL,
     width INT,
