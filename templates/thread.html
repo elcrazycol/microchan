@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui %}
+
+{% block title %}/{{ board.short }}/ — thread {{ thread_id }}{% endblock %}
+
+{% block content %}
+<header class="board-head">
+  <h1>/{{ board.short }}/ — {{ board.title }}</h1>
+  <nav class="board-nav-bar">
+    <a href="/{{ board.short }}/catalog">[Catalog]</a>
+    <a href="/{{ board.short }}/">[Index]</a>
+  </nav>
+</header>
+
+<section class="thread">
+  {{ ui::post(op) }}
+  <div class="thread-replies">
+    {% for p in posts %}
+      {{ ui::post(p) }}
+    {% endfor %}
+  </div>
+</section>
+
+<div id="reply">
+  {{ ui::post_form(reply_url, false) }}
+</div>
+{% endblock %}

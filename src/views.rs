@@ -135,4 +135,16 @@ pub struct BoardTemplate {
     pub threads: Vec<ThreadView>,
     pub page: i64,
     pub has_next: bool,
+    pub post_url: String,
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "thread.html")]
+pub struct ThreadPageTemplate {
+    pub boards: Vec<BoardNav>,
+    pub board: BoardNav,
+    pub op: PostView,
+    pub posts: Vec<PostView>,
+    pub thread_id: i64,
+    pub reply_url: String,
 }

@@ -17,6 +17,8 @@ url = "postgres://localhost/microchan"
 [security]
 # Обязательно смените! Секрет для HMAC-хэширования IP.
 secret = "change-me-please"
+# Отдельная соль для secure-трипкодов (необязательно; по умолчанию = secret)
+#secure_trip_salt = "change-me-too"
 # Старые секреты для ротации (проверка старых банов)
 old_secrets = []
 # Максимум постов с одного IP-хэша в минуту

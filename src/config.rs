@@ -74,6 +74,8 @@ impl Default for DatabaseConfig {
 pub struct SecurityConfig {
     /// Секрет для HMAC-хэширования IP. Никогда не хранить IP открыто.
     pub secret: String,
+    /// Отдельная соль для secure-трипкодов. Если не задана — используется `secret`.
+    pub secure_trip_salt: Option<String>,
     /// Старые секреты для ротации: по ним ещё проверяются баны.
     pub old_secrets: Vec<String>,
     /// Ограничение постов с одного IP-хэша в минуту.
@@ -86,6 +88,7 @@ impl Default for SecurityConfig {
     fn default() -> Self {
         Self {
             secret: String::new(),
+            secure_trip_salt: None,
             old_secrets: Vec::new(),
             max_posts_per_minute: 10,
             hsts: false,
@@ -155,6 +158,13 @@ pub struct BoardConfig {
     pub allowed_extensions: Vec<String>,
     /// Если задано — треды, не бампавшиеся дольше N дней, прунятся.
     pub max_thread_age_days: Option<i64>,
+}
+
+impl SecurityConfig {
+    /// Соль для secure-трипкодов (fallback на `secret`).
+    pub fn secure_trip_salt(&self) -> &str {
+        self.secure_trip_salt.as_deref().unwrap_or(&self.secret)
+    }
 }
 
 impl Config {

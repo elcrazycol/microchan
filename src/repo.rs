@@ -110,7 +110,7 @@ pub async fn board_threads(
             .cloned()
             .unwrap_or_else(|| PostRow {
                 id: t.id,
-                thread_id: t.id,
+                thread_id: None,
                 board: t.board.clone(),
                 is_op: true,
                 name: None,
@@ -125,7 +125,7 @@ pub async fn board_threads(
             });
         let thread_replies: Vec<PostRow> = replies
             .iter()
-            .filter(|p| p.thread_id == t.id)
+            .filter(|p| p.thread_id == Some(t.id))
             .cloned()
             .collect();
         let image_count = img_counts.get(&t.id).copied().unwrap_or(0);
@@ -141,6 +141,204 @@ pub async fn board_threads(
     }
 
     Ok((summaries, total_pages))
+}
+
+/// Данные треда для страницы треда.
+pub struct ThreadData {
+    pub thread: ThreadRow,
+    pub op: PostRow,
+    /// Все ответы (без ОПа), по возрастанию id.
+    pub posts: Vec<PostRow>,
+    /// Файлы постов: post_id -> файлы.
+    pub files: HashMap<i64, Vec<FileRow>>,
+}
+
+/// Полная страница треда; None если тред не существует/удалён.
+pub async fn thread_data(
+    pool: &PgPool,
+    board: &str,
+    thread_id: i64,
+) -> Result<Option<ThreadData>> {
+    let thread: Option<ThreadRow> = sqlx::query_as!(
+        ThreadRow,
+        "SELECT * FROM threads WHERE id = $1 AND board = $2 AND NOT deleted",
+        thread_id,
+        board
+    )
+    .fetch_optional(pool)
+    .await
+    .context("query thread")?;
+    let Some(thread) = thread else {
+        return Ok(None);
+    };
+
+    let op: Option<PostRow> = sqlx::query_as!(
+        PostRow,
+        "SELECT * FROM posts WHERE id = $1 AND is_op",
+        thread.id
+    )
+    .fetch_optional(pool)
+    .await
+    .context("query op post")?;
+    let op = op.unwrap_or_else(|| PostRow {
+        id: thread.id,
+        thread_id: None,
+        board: thread.board.clone(),
+        is_op: true,
+        name: None,
+        tripcode: None,
+        email: None,
+        subject: None,
+        body: String::new(),
+        ip_hash: String::new(),
+        created_at: thread.created_at,
+        deleted: true,
+        delete_reason: None,
+    });
+
+    let posts: Vec<PostRow> = sqlx::query_as!(
+        PostRow,
+        "SELECT * FROM posts WHERE thread_id = $1 AND NOT deleted ORDER BY id",
+        thread.id
+    )
+    .fetch_all(pool)
+    .await
+    .context("query thread posts")?;
+
+    let mut post_ids: Vec<i64> = posts.iter().map(|p| p.id).collect();
+    post_ids.push(op.id);
+    let files: Vec<FileRow> = sqlx::query_as!(
+        FileRow,
+        "SELECT * FROM files WHERE post_id = ANY($1) AND NOT deleted",
+        &post_ids
+    )
+    .fetch_all(pool)
+    .await
+    .context("query thread files")?;
+    let mut files_by_post: HashMap<i64, Vec<FileRow>> = HashMap::new();
+    for f in files {
+        files_by_post.entry(f.post_id).or_default().push(f);
+    }
+
+    Ok(Some(ThreadData {
+        thread,
+        op,
+        posts,
+        files: files_by_post,
+    }))
+}
+
+/// Создаёт тред (пост-ОП + запись треда). Возвращает id треда.
+pub async fn create_thread(
+    pool: &PgPool,
+    board: &str,
+    ip_hash: &str,
+    name: Option<&str>,
+    tripcode: Option<&str>,
+    email: Option<&str>,
+    subject: Option<&str>,
+    body: &str,
+) -> Result<i64> {
+    let mut tx = pool.begin().await.context("begin tx")?;
+    let post_id: i64 = sqlx::query_scalar!(
+        "INSERT INTO posts (thread_id, board, is_op, name, tripcode, email, subject, body, ip_hash)
+         VALUES (NULL, $1, true, $2, $3, $4, $5, $6, $7) RETURNING id",
+        board,
+        name,
+        tripcode,
+        email,
+        subject,
+        body,
+        ip_hash
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .context("insert op post")?;
+
+    sqlx::query!(
+        "INSERT INTO threads (id, board) VALUES ($1, $2)",
+        post_id,
+        board
+    )
+    .execute(&mut *tx)
+    .await
+    .context("insert thread")?;
+
+    tx.commit().await.context("commit thread")?;
+    Ok(post_id)
+}
+
+/// Создаёт ответ. Управляет бампом (sage/locked/bump_limit).
+/// Возвращает id поста.
+pub async fn create_reply(
+    pool: &PgPool,
+    board: &str,
+    thread_id: i64,
+    ip_hash: &str,
+    name: Option<&str>,
+    tripcode: Option<&str>,
+    email: Option<&str>,
+    body: &str,
+    bump_limit: usize,
+) -> Result<i64> {
+    let mut tx = pool.begin().await.context("begin tx")?;
+
+    let thread: Option<ThreadRow> = sqlx::query_as!(
+        ThreadRow,
+        "SELECT * FROM threads WHERE id = $1 AND board = $2 AND NOT deleted FOR UPDATE",
+        thread_id,
+        board
+    )
+    .fetch_optional(&mut *tx)
+    .await
+    .context("lock thread")?;
+    let Some(thread) = thread else {
+        return Err(anyhow::anyhow!("thread not found"));
+    };
+    if thread.locked {
+        return Err(anyhow::anyhow!("thread is locked"));
+    }
+
+    let post_id: i64 = sqlx::query_scalar!(
+        "INSERT INTO posts (thread_id, board, is_op, name, tripcode, email, body, ip_hash)
+         VALUES ($1, $2, false, $3, $4, $5, $6, $7) RETURNING id",
+        thread_id,
+        board,
+        name,
+        tripcode,
+        email,
+        body,
+        ip_hash
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .context("insert reply")?;
+
+    let new_count = thread.post_count + 1;
+    let sage = email == Some("sage");
+    let under_limit = bump_limit == 0 || new_count as usize <= bump_limit;
+    if !sage && under_limit {
+        sqlx::query!(
+            "UPDATE threads SET post_count = $1, last_bump = now() WHERE id = $2",
+            new_count,
+            thread_id
+        )
+        .execute(&mut *tx)
+        .await
+        .context("bump thread")?;
+    } else {
+        sqlx::query!(
+            "UPDATE threads SET post_count = $1 WHERE id = $2",
+            new_count,
+            thread_id
+        )
+        .execute(&mut *tx)
+        .await
+        .context("update thread count")?;
+    }
+
+    tx.commit().await.context("commit reply")?;
+    Ok(post_id)
 }
 
 async fn query_scalar_count_threads(pool: &PgPool, board: &str) -> Result<i64> {
@@ -165,5 +363,8 @@ async fn query_image_counts(pool: &PgPool, thread_ids: &[i64]) -> Result<HashMap
     .fetch_all(pool)
     .await
     .context("count images per thread")?;
-    Ok(rows.into_iter().map(|r| (r.thread_id, r.cnt.unwrap_or(0))).collect())
+    Ok(rows
+        .into_iter()
+        .filter_map(|r| r.thread_id.map(|tid| (tid, r.cnt.unwrap_or(0))))
+        .collect())
 }

@@ -15,10 +15,11 @@ pub struct ThreadRow {
 }
 
 /// Пост. Номер поста (id) глобальный, как в классических бордах.
+/// Для ОПа thread_id = None (тред создаётся по id ОПа).
 #[derive(Debug, Clone, FromRow)]
 pub struct PostRow {
     pub id: i64,
-    pub thread_id: i64,
+    pub thread_id: Option<i64>,
     pub board: String,
     pub is_op: bool,
     pub name: Option<String>,

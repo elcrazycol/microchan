@@ -5,7 +5,9 @@ mod markup;
 mod models;
 mod repo;
 mod routes;
+mod security;
 mod state;
+mod tripcode;
 mod views;
 
 use std::net::SocketAddr;
@@ -50,7 +52,11 @@ async fn main() -> anyhow::Result<()> {
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
     let listener = tokio::net::TcpListener::bind(addr).await?;
     tracing::info!("listening on http://{addr}");
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
     Ok(())
 }
 

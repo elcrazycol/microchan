@@ -635,6 +635,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "encoding_rs"
+version = "0.8.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
 name = "equator"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1440,6 +1449,7 @@ dependencies = [
  "base64 0.23.1",
  "chrono",
  "dotenvy",
+ "encoding_rs",
  "futures-util",
  "hmac",
  "image",
@@ -1449,6 +1459,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "sha1",
  "sha2 0.11.0",
  "sqlx",
  "thiserror",

@@ -5,7 +5,7 @@
     {% if p.locked %}<span class="locked-flag">Locked</span>{% endif %}
     {% if p.subject.len() > 0 %}<span class="subject">{{ p.subject }}</span>{% endif %}
     <span class="name{% if p.is_op %} admin{% endif %}">{{ p.name }}</span>
-    {% if p.tripcode.len() > 0 %}<span class="tripcode">!{{ p.tripcode }}</span>{% endif %}
+    {% if p.tripcode.len() > 0 %}<span class="tripcode">{{ p.tripcode }}</span>{% endif %}
     {% if p.sage %}<span class="sage">sage</span>{% endif %}
     <span class="time">{{ p.time }}</span>
     {% if p.counts.len() > 0 %}<span class="time">{{ p.counts }}</span>{% endif %}
@@ -37,4 +37,33 @@
     <a href="#report{{ p.id }}" class="report-link" data-ref="{{ p.id }}">Report</a>
   </div>
 </article>
+{% endmacro %}
+
+{% macro post_form(action, is_thread) %}
+<form class="post-form" action="{{ action }}" method="post" autocomplete="off">
+  <table>
+    <tr>
+      <th>Name</th>
+      <td><input type="text" name="name" maxlength="100" placeholder="Anonymous"></td>
+    </tr>
+    <tr>
+      <th>Email</th>
+      <td><input type="text" name="email" maxlength="100" placeholder="sage — без бампа"></td>
+    </tr>
+    {% if is_thread %}
+    <tr>
+      <th>Subject</th>
+      <td><input type="text" name="subject" maxlength="100"></td>
+    </tr>
+    {% endif %}
+    <tr>
+      <th>Comment</th>
+      <td><textarea name="body" required></textarea></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td class="actions"><button type="submit">Post</button></td>
+    </tr>
+  </table>
+</form>
 {% endmacro %}

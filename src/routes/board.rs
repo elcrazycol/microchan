@@ -83,6 +83,7 @@ async fn render_board(
         threads,
         page,
         has_next: page + 1 < total_pages,
+        post_url: format!("/{board}/post"),
     };
 
     Ok(template.into_response())

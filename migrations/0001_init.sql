@@ -15,7 +15,8 @@ CREATE INDEX idx_threads_board_bump ON threads (board, last_bump DESC) WHERE NOT
 
 CREATE TABLE posts (
     id BIGSERIAL PRIMARY KEY,
-    thread_id BIGINT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
+    -- NULL для ОПа (тред создаётся по id поста-ОПа)
+    thread_id BIGINT REFERENCES threads(id) ON DELETE CASCADE,
     board TEXT NOT NULL,
     is_op BOOLEAN NOT NULL DEFAULT FALSE,
     name TEXT,

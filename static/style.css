@@ -210,6 +210,10 @@ button:hover, .btn:hover { background: var(--accent-dark); text-decoration: none
 .post .body a.ref { font-weight: 700; }
 .post .body a.ref:hover { text-decoration: none; }
 
+.post.highlighted {
+  outline: 2px solid #b3261e;
+}
+
 .post .actions {
   margin-top: 0.3rem;
   font-size: 0.8rem;
