@@ -1,0 +1,64 @@
+# Пример конфигурации microchan.
+# Скопируйте в config.toml, отредактируйте секреты и запустите.
+
+[server]
+host = "127.0.0.1"
+port = 8080
+# Публичный URL (для корректных ссылок)
+base_url = "http://localhost:8080"
+# Каталог для загруженных файлов
+data_dir = "data"
+# Доверенные прокси (IP или CIDR) — от них принимаем X-Forwarded-For
+trusted_proxies = ["127.0.0.1/32"]
+
+[database]
+url = "postgres://localhost/microchan"
+
+[security]
+# Обязательно смените! Секрет для HMAC-хэширования IP.
+secret = "change-me-please"
+# Старые секреты для ротации (проверка старых банов)
+old_secrets = []
+# Максимум постов с одного IP-хэша в минуту
+max_posts_per_minute = 10
+# HSTS (только при работе по HTTPS)
+hsts = false
+
+[moderation]
+# Обязательно смените! Пароль входа в модераторскую.
+admin_password = "change-me-please"
+# Если задан — модераторская доступна только по /mod/<secret>/
+mod_secret_url = ""
+# Срок жизни сессии модератора, часов
+session_hours = 12
+
+[media]
+thumb_width = 200
+thumb_height = 200
+thumb_quality = 80
+# Максимальная длительность видео в секундах (0 = без ограничения)
+max_video_seconds = 0
+
+# Доски. Добавляйте/удаляйте/редактируйте только здесь.
+[[boards]]
+short = "b"
+title = "Random"
+description = "Всё что угодно"
+nsfw = false
+thread_limit = 100
+bump_limit = 500
+max_images = 5
+max_file_size = 10485760
+allowed_extensions = ["jpg", "jpeg", "png", "webp", "gif", "webm", "mp4"]
+# max_thread_age_days = 30
+
+[[boards]]
+short = "tech"
+title = "Technology"
+description = "Технологии и код"
+nsfw = false
+thread_limit = 50
+bump_limit = 300
+max_images = 3
+max_file_size = 10485760
+allowed_extensions = ["jpg", "jpeg", "png", "webp", "gif", "webm", "mp4"]
