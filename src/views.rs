@@ -138,6 +138,7 @@ pub struct BoardTemplate {
     pub page: i64,
     pub has_next: bool,
     pub post_url: String,
+    pub csrf: String,
 }
 
 /// Ячейка каталога.
@@ -169,4 +170,5 @@ pub struct ThreadPageTemplate {
     pub posts: Vec<PostView>,
     pub thread_id: i64,
     pub reply_url: String,
+    pub csrf: String,
 }

@@ -39,8 +39,9 @@
 </article>
 {% endmacro %}
 
-{% macro post_form(action, is_thread) %}
+{% macro post_form(action, is_thread, csrf) %}
 <form class="post-form" action="{{ action }}" method="post" enctype="multipart/form-data" autocomplete="off">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
   <table>
     <tr>
       <th>Name</th>

@@ -1,9 +1,11 @@
 //! Создание тредов и ответов (multipart: текст + файлы).
 
 use axum::extract::{ConnectInfo, DefaultBodyLimit, Multipart, Path, State};
+use axum::http::HeaderMap;
 use axum::response::Redirect;
 use axum::Router;
 
+use crate::config::BoardConfig;
 use crate::error::AppError;
 use crate::media;
 use crate::repo;
@@ -25,6 +27,13 @@ struct Fields {
     subject: String,
     body: String,
     spoiler: bool,
+    csrf: String,
+}
+
+struct Parsed {
+    fields: Fields,
+    /// (имя файла, байты)
+    files: Vec<(String, Vec<u8>)>,
 }
 
 pub fn router() -> Router<AppState> {
@@ -41,17 +50,18 @@ async fn create_thread(
     State(state): State<AppState>,
     Path(board): Path<String>,
     ConnectInfo(connect): ConnectInfo<std::net::SocketAddr>,
-    headers: axum::http::HeaderMap,
+    headers: HeaderMap,
     multipart: Multipart,
 ) -> Result<Redirect, AppError> {
     let bcfg = state.config.board(&board).ok_or(AppError::NotFound)?;
-    let ip_hash = client_ip_hash(&state, &headers, connect);
-    let (fields, stored) = parse_and_store(&state, &board, bcfg, multipart).await?;
+    let (parsed, ip_hash) = guard_and_parse(&state, &headers, connect, multipart).await?;
 
-    let (body, name, subject, email) = sanitize(fields)?;
-    if body.is_empty() && stored.is_empty() {
+    let (body, name, subject, email) = sanitize(&parsed.fields)?;
+    if body.is_empty() && parsed.files.is_empty() {
         return Err(AppError::bad_request("Comment or file is required"));
     }
+
+    let stored = store_files(&state, &board, bcfg, &parsed).await?;
 
     let (name, trips) = tripcode::split_name(&name);
     let tripcode = trips.render(state.config.security.secure_trip_salt());
@@ -82,17 +92,18 @@ async fn create_reply(
     State(state): State<AppState>,
     Path((board, thread_id)): Path<(String, i64)>,
     ConnectInfo(connect): ConnectInfo<std::net::SocketAddr>,
-    headers: axum::http::HeaderMap,
+    headers: HeaderMap,
     multipart: Multipart,
 ) -> Result<Redirect, AppError> {
     let bcfg = state.config.board(&board).ok_or(AppError::NotFound)?;
-    let ip_hash = client_ip_hash(&state, &headers, connect);
-    let (fields, stored) = parse_and_store(&state, &board, bcfg, multipart).await?;
+    let (parsed, ip_hash) = guard_and_parse(&state, &headers, connect, multipart).await?;
 
-    let (body, name, _subject, email) = sanitize(fields)?;
-    if body.is_empty() && stored.is_empty() {
+    let (body, name, _subject, email) = sanitize(&parsed.fields)?;
+    if body.is_empty() && parsed.files.is_empty() {
         return Err(AppError::bad_request("Comment or file is required"));
     }
+
+    let stored = store_files(&state, &board, bcfg, &parsed).await?;
 
     let (name, trips) = tripcode::split_name(&name);
     let tripcode = trips.render(state.config.security.secure_trip_salt());
@@ -129,15 +140,39 @@ async fn create_reply(
     }
 }
 
-/// Разбирает multipart, валидирует и сохраняет файлы на диск.
-async fn parse_and_store(
+/// Rate-limit + CSRF-проверка + разбор multipart. Возвращает (parsed, ip_hash).
+async fn guard_and_parse(
     state: &AppState,
-    board: &str,
-    bcfg: &crate::config::BoardConfig,
+    headers: &HeaderMap,
+    connect: std::net::SocketAddr,
     multipart: Multipart,
-) -> Result<(Fields, Vec<media::Stored>), AppError> {
+) -> Result<(Parsed, String), AppError> {
+    let ip = security::client_ip(headers, connect, &state.config.server.trusted_proxies);
+    let ip_hash = security::ip_hash(&ip, &state.config.security.secret);
+
+    if !state
+        .rate_limiter
+        .allow(&ip_hash, state.config.security.max_posts_per_minute)
+    {
+        return Err(AppError::RateLimited);
+    }
+
+    if security::csrf_from_cookie(headers).is_none() {
+        return Err(AppError::Forbidden);
+    }
+
+    let parsed = parse_multipart(multipart).await?;
+
+    if !security::csrf_valid(headers, &parsed.fields.csrf) {
+        return Err(AppError::Forbidden);
+    }
+
+    Ok((parsed, ip_hash))
+}
+
+async fn parse_multipart(multipart: Multipart) -> Result<Parsed, AppError> {
     let mut fields = Fields::default();
-    let mut raw_files: Vec<(String, Vec<u8>)> = Vec::new();
+    let mut files: Vec<(String, Vec<u8>)> = Vec::new();
 
     let mut mp = multipart;
     while let Some(field) = mp
@@ -151,6 +186,7 @@ async fn parse_and_store(
             "email" => fields.email = read_text(field).await?,
             "subject" => fields.subject = read_text(field).await?,
             "body" => fields.body = read_text(field).await?,
+            "csrf" => fields.csrf = read_text(field).await?,
             "spoiler" => {
                 let v = read_text(field).await?;
                 if matches!(v.as_str(), "on" | "1" | "true" | "yes") {
@@ -165,24 +201,33 @@ async fn parse_and_store(
                         .await
                         .map_err(|e| AppError::bad_request(format!("Bad upload: {e}")))?
                         .to_vec();
-                    raw_files.push((filename, data));
+                    files.push((filename, data));
                 }
             }
             _ => {}
         }
     }
 
-    if raw_files.len() > bcfg.max_images {
+    Ok(Parsed { fields, files })
+}
+
+/// Валидирует и сохраняет файлы поста на диск.
+async fn store_files(
+    state: &AppState,
+    board: &str,
+    bcfg: &BoardConfig,
+    parsed: &Parsed,
+) -> Result<Vec<media::Stored>, AppError> {
+    if parsed.files.len() > bcfg.max_images {
         return Err(AppError::bad_request(format!(
             "Too many files (max {})",
             bcfg.max_images
         )));
     }
 
-    // Валидируем и сохраняем файлы.
-    let mut stored = Vec::with_capacity(raw_files.len());
-    for (filename, data) in raw_files {
-        let validated = media::validate(data, &filename, bcfg, fields.spoiler)?;
+    let mut stored = Vec::with_capacity(parsed.files.len());
+    for (filename, data) in &parsed.files {
+        let validated = media::validate(data.clone(), filename, bcfg, parsed.fields.spoiler)?;
         let s = media::store(
             &validated,
             board,
@@ -193,7 +238,7 @@ async fn parse_and_store(
         stored.push(s);
     }
 
-    Ok((fields, stored))
+    Ok(stored)
 }
 
 async fn read_text(field: axum::extract::multipart::Field<'_>) -> Result<String, AppError> {
@@ -203,17 +248,8 @@ async fn read_text(field: axum::extract::multipart::Field<'_>) -> Result<String,
         .map_err(|e| AppError::bad_request(format!("Bad field: {e}")))
 }
 
-fn client_ip_hash(
-    state: &AppState,
-    headers: &axum::http::HeaderMap,
-    connect: std::net::SocketAddr,
-) -> String {
-    let ip = security::client_ip(headers, connect, &state.config.server.trusted_proxies);
-    security::ip_hash(&ip, &state.config.security.secret)
-}
-
 /// Обрезает и нормализует поля формы.
-fn sanitize(fields: Fields) -> Result<(String, String, String, String), AppError> {
+fn sanitize(fields: &Fields) -> Result<(String, String, String, String), AppError> {
     let body = fields.body.trim().to_string();
     if body.len() > MAX_BODY {
         return Err(AppError::bad_request("Comment is too long"));

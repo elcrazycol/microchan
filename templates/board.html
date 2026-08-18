@@ -13,7 +13,7 @@
   </nav>
 </header>
 
-{{ ui::post_form(post_url, true) }}
+{{ ui::post_form(post_url, true, csrf) }}
 
 {% if threads.len() == 0 %}
   <p class="notice">No threads yet. Be the first to start one.</p>

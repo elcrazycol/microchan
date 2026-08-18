@@ -13,6 +13,7 @@ mod views;
 
 use std::net::SocketAddr;
 
+use axum::middleware;
 use axum::Router;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
@@ -42,11 +43,15 @@ async fn main() -> anyhow::Result<()> {
     let pool = db::connect_and_migrate(&config).await?;
     let state = AppState::new(config.clone(), pool);
 
+    let hsts = config.security.hsts;
     let app = Router::new()
         .route("/health", axum::routing::get(handler_health))
         .merge(routes::router())
         .nest_service("/static", ServeDir::new("static"))
         .nest_service("/files", ServeDir::new(&config.server.data_dir))
+        .layer(middleware::from_fn(move |req, next| {
+            security::security_headers(req, next, hsts)
+        }))
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 

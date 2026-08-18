@@ -1,12 +1,23 @@
-//! Безопасность: определение IP клиента и его хэширование.
+//! Безопасность: определение IP клиента, CSRF, security-заголовки, rate-limit.
 //!
 //! IP никогда не хранится в открытом виде — только HMAC-SHA256(secret, ip).
 
+use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
+use std::sync::Mutex;
+use std::time::Instant;
 
+use axum::extract::Request;
 use axum::http::HeaderMap;
+use axum::middleware::Next;
+use axum::response::Response;
 
 use crate::tripcode;
+
+/// Content-Security-Policy: только собственные ресурсы, без inline-кода.
+const CSP: &str = "default-src 'none'; img-src 'self'; media-src 'self'; \
+     style-src 'self'; script-src 'self'; connect-src 'self'; \
+     form-action 'self'; base-uri 'self'; frame-ancestors 'none'";
 
 /// Определяет реальный IP клиента.
 ///
@@ -32,7 +43,93 @@ pub fn ip_hash(ip: &IpAddr, secret: &str) -> String {
     tripcode::hash_ip(&ip.to_string(), secret)
 }
 
-/// Проверяет, является ли клиент доверенным прокси из конфига.
-pub fn is_trusted_proxy(ip: &IpAddr, trusted: &[ipnet::IpNet]) -> bool {
-    trusted.iter().any(|net| net.contains(ip))
+// ---------------------------------------------------------------- CSRF
+
+/// Генерирует CSRF-токен (double-submit cookie).
+pub fn csrf_token() -> String {
+    let bytes: [u8; 32] = rand::random();
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// Читает CSRF-токен из cookie-заголовка.
+pub fn csrf_from_cookie(headers: &HeaderMap) -> Option<String> {
+    let cookie = headers.get("cookie")?.to_str().ok()?;
+    cookie.split(';').map(str::trim).find_map(|kv| {
+        let (k, v) = kv.split_once('=')?;
+        (k == "csrf").then(|| v.to_string())
+    })
+}
+
+/// Проверяет double-submit: токен формы должен совпадать с токеном cookie.
+pub fn csrf_valid(headers: &HeaderMap, form_token: &str) -> bool {
+    match csrf_from_cookie(headers) {
+        Some(cookie) if !cookie.is_empty() => cookie == form_token,
+        _ => false,
+    }
+}
+
+/// Достаёт CSRF-токен из cookie или создаёт новый. Возвращает (токен, новый?).
+pub fn csrf_for_request(headers: &HeaderMap) -> (String, bool) {
+    match csrf_from_cookie(headers) {
+        Some(t) if !t.is_empty() => (t, false),
+        _ => (csrf_token(), true),
+    }
+}
+
+/// Значение заголовка Set-Cookie для CSRF-токена.
+pub fn csrf_set_cookie(token: &str) -> axum::http::HeaderValue {
+    format!("csrf={token}; Path=/; SameSite=Lax; HttpOnly")
+        .parse()
+        .expect("valid cookie header")
+}
+
+// ---------------------------------------------------------------- Headers
+
+/// Middleware: security-заголовки на каждый ответ.
+pub async fn security_headers(req: Request, next: Next, hsts: bool) -> Response {
+    let mut resp = next.run(req).await;
+    let h = resp.headers_mut();
+    h.insert("x-content-type-options", "nosniff".parse().unwrap());
+    h.insert("x-frame-options", "DENY".parse().unwrap());
+    h.insert("referrer-policy", "same-origin".parse().unwrap());
+    h.insert("content-security-policy", CSP.parse().unwrap());
+    if hsts {
+        h.insert(
+            "strict-transport-security",
+            "max-age=31536000; includeSubDomains".parse().unwrap(),
+        );
+    }
+    resp
+}
+
+// ---------------------------------------------------------------- Rate limit
+
+/// Простой in-memory rate limiter (скользящее окно 60 секунд).
+pub struct RateLimiter {
+    windows: Mutex<HashMap<String, Vec<Instant>>>,
+}
+
+impl RateLimiter {
+    pub fn new() -> Self {
+        Self {
+            windows: Mutex::new(HashMap::new()),
+        }
+    }
+
+    /// Разрешает запрос, если не превышен лимит за последнюю минуту.
+    /// `limit == 0` отключает ограничение.
+    pub fn allow(&self, key: &str, limit: u32) -> bool {
+        if limit == 0 {
+            return true;
+        }
+        let now = Instant::now();
+        let mut map = self.windows.lock().unwrap();
+        let times = map.entry(key.to_string()).or_default();
+        times.retain(|t| now.duration_since(*t).as_secs() < 60);
+        if times.len() >= limit as usize {
+            return false;
+        }
+        times.push(now);
+        true
+    }
 }
