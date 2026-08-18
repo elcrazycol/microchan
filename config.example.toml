@@ -12,7 +12,10 @@ data_dir = "data"
 trusted_proxies = ["127.0.0.1/32"]
 
 [database]
-url = "postgres://localhost/microchan"
+# ВАЖНО: укажите имя пользователя PostgreSQL (обычно это имя пользователя ОС,
+# узнаётся командой `whoami`). Без него SQLx 0.9 подставит роль "anonymous"
+# и подключение упадёт с ошибкой «role "anonymous" does not exist».
+url = "postgres://YOUR_USERNAME@localhost/microchan"
 
 [security]
 # Обязательно смените! Секрет для HMAC-хэширования IP.

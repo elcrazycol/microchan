@@ -27,6 +27,8 @@ createdb microchan
 # 2. Скопировать и отредактировать конфиг
 cp config.example.toml config.toml
 $EDITOR config.toml   # database.url, security.secret, moderation.admin_password
+#    в database.url обязательно укажите имя пользователя БД:
+#    postgres://ВАШ_ПОЛЬЗОВАТЕЛЬ@localhost/microchan (узнайте его через `whoami`)
 
 # 3. Собрать и запустить (БД для сборки не нужна — SQLx offline)
 cargo run --release
@@ -47,9 +49,25 @@ cargo run --release
 и установленный `sqlx-cli`):
 
 ```bash
-export DATABASE_URL=postgres://localhost/microchan
+export DATABASE_URL=postgres://YOUR_USERNAME@localhost/microchan
 cargo sqlx prepare
 ```
+
+### Ошибка «role "anonymous" does not exist»
+
+SQLx 0.9 при сборке и подключении к PostgreSQL, если в URL **не указан**
+пользователь, подставляет роль `anonymous` (из-за известного поведения крейта
+`whoami`, собранного без feature `std`). Исправление одно — всегда указывайте
+имя пользователя в URL подключения:
+
+```
+postgres://ВАШ_ПОЛЬЗОВАТЕЛЬ@localhost/microchan
+```
+
+Имя пользователя БД обычно совпадает с именем пользователя ОС (`whoami`).
+Убедитесь также, что в оболочке не выставлен `DATABASE_URL` без имени
+пользователя — он переопределяет `database.url` и на этапе сборки, и при
+запуске. Для сборки он вообще не нужен (см. выше про offline-кэш `.sqlx/`).
 
 ## Возможности
 
