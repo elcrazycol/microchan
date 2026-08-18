@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Moderator panel{% endblock %}
+
+{% block content %}
+<header class="board-head">
+  <h1>Moderator panel</h1>
+  <nav class="board-nav-bar">
+    <a href="{{ base }}/">[Panel]</a>
+    <a href="/">[Boards]</a>
+  </nav>
+</header>
+
+<form class="post-form" action="{{ base }}/logout" method="post">
+  <button type="submit" class="btn-secondary">Logout</button>
+</form>
+
+<h2>Ban</h2>
+<form class="post-form" action="{{ base }}/ban" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <table>
+    <tr><th>IP hash</th><td><input type="text" name="ip_hash" placeholder="HMAC-SHA256 IP"></td></tr>
+    <tr><th>File hash</th><td><input type="text" name="file_hash" placeholder="SHA-256 file"></td></tr>
+    <tr><th>Reason</th><td><input type="text" name="reason" required></td></tr>
+    <tr><th>Hours</th><td><input type="number" name="hours" min="1" placeholder="empty = permanent"></td></tr>
+    <tr><td></td><td class="actions"><button type="submit">Ban</button></td></tr>
+  </table>
+</form>
+
+<h2>Reports</h2>
+<div class="mod-panel">
+  <table>
+    <tr><th>#</th><th>Post</th><th>Reason</th><th>IP hash</th><th>Date</th><th>Actions</th></tr>
+    {% for r in reports %}
+    <tr>
+      <td>{{ r.id }}</td>
+      <td><a href="/jump/{{ r.post_id }}">#{{ r.post_id }}</a> (/{{ r.board }}/)</td>
+      <td>{{ r.reason }}</td>
+      <td><span title="{{ r.ip_hash }}">{{ r.ip_hash }}</span></td>
+      <td>{{ r.created_at }}</td>
+      <td class="actions">
+        <form action="{{ base }}/ban" method="post">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="ip_hash" value="{{ r.ip_hash }}">
+          <input type="text" name="reason" placeholder="Reason" required>
+          <button type="submit">Ban</button>
+        </form>
+        <form action="{{ base }}/delete-post" method="post">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="id" value="{{ r.post_id }}">
+          <button type="submit" class="btn-danger">Delete</button>
+        </form>
+        <form action="{{ base }}/resolve" method="post">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="id" value="{{ r.id }}">
+          <button type="submit">Resolve</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if reports.len() == 0 %}<p class="notice">No open reports.</p>{% endif %}
+</div>
+
+<h2>Bans</h2>
+<div class="mod-panel">
+  <table>
+    <tr><th>IP hash</th><th>File hash</th><th>Reason</th><th>By</th><th>Created</th><th>Expires</th></tr>
+    {% for b in bans %}
+    <tr>
+      <td>{% if b.ip_hash.len() > 0 %}{{ b.ip_hash }}{% else %}-{% endif %}</td>
+      <td>{% if b.file_hash.len() > 0 %}{{ b.file_hash }}{% else %}-{% endif %}</td>
+      <td>{{ b.reason }}</td>
+      <td>{{ b.created_by }}</td>
+      <td>{{ b.created_at }}</td>
+      <td>{{ b.expires_at }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if bans.len() == 0 %}<p class="notice">No bans.</p>{% endif %}
+</div>
+
+<h2>Moderator log</h2>
+<div class="mod-panel">
+  <table>
+    <tr><th>Moderator</th><th>Action</th><th>Target</th><th>When</th></tr>
+    {% for l in logs %}
+    <tr>
+      <td>{{ l.moderator }}</td>
+      <td>{{ l.action }}</td>
+      <td>{{ l.target }}</td>
+      <td>{{ l.created_at }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

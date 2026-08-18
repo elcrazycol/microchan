@@ -55,6 +55,9 @@ async fn create_thread(
 ) -> Result<Redirect, AppError> {
     let bcfg = state.config.board(&board).ok_or(AppError::NotFound)?;
     let (parsed, ip_hash) = guard_and_parse(&state, &headers, connect, multipart).await?;
+    if repo::is_ip_banned(&state.pool, &ip_hash).await? {
+        return Err(AppError::Banned);
+    }
 
     let (body, name, subject, email) = sanitize(&parsed.fields)?;
     if body.is_empty() && parsed.files.is_empty() {
@@ -97,6 +100,9 @@ async fn create_reply(
 ) -> Result<Redirect, AppError> {
     let bcfg = state.config.board(&board).ok_or(AppError::NotFound)?;
     let (parsed, ip_hash) = guard_and_parse(&state, &headers, connect, multipart).await?;
+    if repo::is_ip_banned(&state.pool, &ip_hash).await? {
+        return Err(AppError::Banned);
+    }
 
     let (body, name, _subject, email) = sanitize(&parsed.fields)?;
     if body.is_empty() && parsed.files.is_empty() {
@@ -228,6 +234,10 @@ async fn store_files(
     let mut stored = Vec::with_capacity(parsed.files.len());
     for (filename, data) in &parsed.files {
         let validated = media::validate(data.clone(), filename, bcfg, parsed.fields.spoiler)?;
+        if repo::is_file_banned(&state.pool, &validated.sha256).await? {
+            media::cleanup(&stored, board, &state.config.server.data_dir).await;
+            return Err(AppError::Banned);
+        }
         let s = media::store(
             &validated,
             board,

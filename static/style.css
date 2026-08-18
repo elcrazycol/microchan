@@ -227,6 +227,30 @@ button:hover, .btn:hover { background: var(--accent-dark); text-decoration: none
 }
 .post .actions button:hover { color: var(--nsfw); }
 
+.post .report-form {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  margin-top: 0.4rem;
+}
+.post .report-form.hidden { display: none; }
+.post .report-form input[type=text] {
+  flex: 1;
+  max-width: 320px;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.8rem;
+}
+.post .report-form button {
+  background: var(--muted);
+  color: #fff;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+}
+.post .report-form button:hover { background: var(--nsfw); }
+
 .thread-omitted { color: var(--muted); font-size: 0.85rem; margin: 0.2rem 0; }
 
 /* Catalog */

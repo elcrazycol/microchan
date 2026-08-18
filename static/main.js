@@ -36,3 +36,12 @@ document.addEventListener('click', function (e) {
   }
   e.preventDefault();
 });
+
+// Жалоба: показать/скрыть форму.
+document.addEventListener('click', function (e) {
+  var link = e.target.closest('.report-link');
+  if (!link) return;
+  var form = link.closest('.post').querySelector('.report-form');
+  if (form) form.classList.toggle('hidden');
+  e.preventDefault();
+});

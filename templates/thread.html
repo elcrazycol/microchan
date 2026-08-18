@@ -13,10 +13,10 @@
 </header>
 
 <section class="thread">
-  {{ ui::post(op) }}
+  {{ ui::post(op, csrf) }}
   <div class="thread-replies">
     {% for p in posts %}
-      {{ ui::post(p) }}
+      {{ ui::post(p, csrf) }}
     {% endfor %}
   </div>
 </section>

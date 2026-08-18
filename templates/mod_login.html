@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Moderator login{% endblock %}
+
+{% block content %}
+<header class="board-head">
+  <h1>Moderator login</h1>
+</header>
+
+<form class="post-form" action="{{ action }}" method="post" autocomplete="off">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <table>
+    <tr>
+      <th>Password</th>
+      <td><input type="password" name="password" required></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td class="actions"><button type="submit">Login</button></td>
+    </tr>
+  </table>
+</form>
+{% endblock %}

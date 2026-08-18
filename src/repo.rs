@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
 use crate::media::Stored;
-use crate::models::{FileRow, PostRow, ThreadRow};
+use crate::models::{BanRow, FileRow, ModLogRow, PostRow, ThreadRow};
 
 /// Тред для отображения на странице доски.
 pub struct ThreadSummary {
@@ -458,4 +459,218 @@ async fn query_image_counts(pool: &PgPool, thread_ids: &[i64]) -> Result<HashMap
         .into_iter()
         .filter_map(|r| r.thread_id.map(|tid| (tid, r.cnt.unwrap_or(0))))
         .collect())
+}
+
+// ------------------------------------------------------------------ Reports
+
+/// Жалоба с контекстом поста (доска и IP-хэш автора) для мод-панели.
+pub struct ReportView {
+    pub id: i64,
+    pub post_id: i64,
+    pub board: String,
+    pub reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub ip_hash: String,
+}
+
+pub async fn create_report(
+    pool: &PgPool,
+    post_id: i64,
+    reason: Option<&str>,
+    ip_hash: &str,
+) -> Result<()> {
+    sqlx::query!(
+        "INSERT INTO reports (post_id, reason, ip_hash) VALUES ($1, $2, $3)",
+        post_id,
+        reason,
+        ip_hash
+    )
+    .execute(pool)
+    .await
+    .context("insert report")?;
+    Ok(())
+}
+
+pub async fn list_reports(pool: &PgPool, resolved: bool) -> Result<Vec<ReportView>> {
+    let rows = sqlx::query!(
+        "SELECT r.id, r.post_id, r.reason, r.created_at, p.board, p.ip_hash
+         FROM reports r JOIN posts p ON p.id = r.post_id
+         WHERE r.resolved = $1
+         ORDER BY r.created_at DESC",
+        resolved
+    )
+    .fetch_all(pool)
+    .await
+    .context("query reports")?;
+    Ok(rows
+        .into_iter()
+        .map(|r| ReportView {
+            id: r.id,
+            post_id: r.post_id,
+            board: r.board,
+            reason: r.reason,
+            created_at: r.created_at,
+            ip_hash: r.ip_hash,
+        })
+        .collect())
+}
+
+pub async fn resolve_report(pool: &PgPool, report_id: i64) -> Result<()> {
+    sqlx::query!("UPDATE reports SET resolved = true WHERE id = $1", report_id)
+        .execute(pool)
+        .await
+        .context("resolve report")?;
+    Ok(())
+}
+
+// -------------------------------------------------------------------- Bans
+
+pub async fn create_ban(
+    pool: &PgPool,
+    ip_hash: Option<&str>,
+    file_hash: Option<&str>,
+    reason: &str,
+    created_by: &str,
+    expires_at: Option<DateTime<Utc>>,
+) -> Result<()> {
+    sqlx::query!(
+        "INSERT INTO bans (ip_hash, file_hash, reason, created_by, expires_at)
+         VALUES ($1, $2, $3, $4, $5)",
+        ip_hash,
+        file_hash,
+        reason,
+        created_by,
+        expires_at
+    )
+    .execute(pool)
+    .await
+    .context("insert ban")?;
+    Ok(())
+}
+
+pub async fn list_bans(pool: &PgPool) -> Result<Vec<BanRow>> {
+    sqlx::query_as!(BanRow, "SELECT * FROM bans ORDER BY created_at DESC")
+        .fetch_all(pool)
+        .await
+        .context("query bans")
+}
+
+pub async fn is_ip_banned(pool: &PgPool, ip_hash: &str) -> Result<bool> {
+    let row = sqlx::query!(
+        "SELECT 1 AS one FROM bans WHERE ip_hash = $1 AND (expires_at IS NULL OR expires_at > now()) LIMIT 1",
+        ip_hash
+    )
+    .fetch_optional(pool)
+    .await
+    .context("check ip ban")?;
+    Ok(row.is_some())
+}
+
+pub async fn is_file_banned(pool: &PgPool, file_hash: &str) -> Result<bool> {
+    let row = sqlx::query!(
+        "SELECT 1 AS one FROM bans WHERE file_hash = $1 AND (expires_at IS NULL OR expires_at > now()) LIMIT 1",
+        file_hash
+    )
+    .fetch_optional(pool)
+    .await
+    .context("check file ban")?;
+    Ok(row.is_some())
+}
+
+// ---------------------------------------------------------------- Deletion
+
+/// Помечает пост удалённым; если это ОП — удаляет и тред.
+pub async fn delete_post(pool: &PgPool, post_id: i64) -> Result<()> {
+    sqlx::query!(
+        "UPDATE posts SET deleted = true, delete_reason = 'moderator' WHERE id = $1",
+        post_id
+    )
+    .execute(pool)
+    .await
+    .context("delete post")?;
+    sqlx::query!("UPDATE threads SET deleted = true WHERE id = $1", post_id)
+        .execute(pool)
+        .await
+        .context("delete thread (op)")?;
+    Ok(())
+}
+
+/// Удаляет тред целиком.
+pub async fn delete_thread(pool: &PgPool, thread_id: i64) -> Result<()> {
+    sqlx::query!("UPDATE threads SET deleted = true WHERE id = $1", thread_id)
+        .execute(pool)
+        .await
+        .context("delete thread")?;
+    sqlx::query!(
+        "UPDATE posts SET deleted = true WHERE id = $1 OR thread_id = $1",
+        thread_id
+    )
+    .execute(pool)
+    .await
+    .context("delete thread posts")?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------- Sessions
+
+pub async fn create_session(pool: &PgPool, token: &str, expires_at: DateTime<Utc>) -> Result<()> {
+    sqlx::query!(
+        "INSERT INTO mod_sessions (token, expires_at) VALUES ($1, $2)",
+        token,
+        expires_at
+    )
+    .execute(pool)
+    .await
+    .context("insert session")?;
+    Ok(())
+}
+
+pub async fn session_valid(pool: &PgPool, token: &str) -> Result<bool> {
+    let row = sqlx::query!(
+        "SELECT 1 AS one FROM mod_sessions WHERE token = $1 AND expires_at > now() LIMIT 1",
+        token
+    )
+    .fetch_optional(pool)
+    .await
+    .context("check session")?;
+    Ok(row.is_some())
+}
+
+pub async fn delete_session(pool: &PgPool, token: &str) -> Result<()> {
+    sqlx::query!("DELETE FROM mod_sessions WHERE token = $1", token)
+        .execute(pool)
+        .await
+        .context("delete session")?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------- Mod log
+
+pub async fn log_action(
+    pool: &PgPool,
+    moderator: &str,
+    action: &str,
+    target: Option<&str>,
+) -> Result<()> {
+    sqlx::query!(
+        "INSERT INTO mod_logs (moderator, action, target) VALUES ($1, $2, $3)",
+        moderator,
+        action,
+        target
+    )
+    .execute(pool)
+    .await
+    .context("insert mod log")?;
+    Ok(())
+}
+
+pub async fn list_mod_logs(pool: &PgPool, limit: i64) -> Result<Vec<ModLogRow>> {
+    sqlx::query_as!(
+        ModLogRow,
+        "SELECT * FROM mod_logs ORDER BY id DESC LIMIT $1",
+        limit
+    )
+    .fetch_all(pool)
+    .await
+    .context("query mod logs")
 }

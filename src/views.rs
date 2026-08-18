@@ -172,3 +172,56 @@ pub struct ThreadPageTemplate {
     pub reply_url: String,
     pub csrf: String,
 }
+
+// ------------------------------------------------------------ Модерация
+
+/// Жалоба в мод-панели.
+#[derive(Debug, Clone)]
+pub struct ModReport {
+    pub id: i64,
+    pub post_id: i64,
+    pub board: String,
+    pub reason: String,
+    pub created_at: String,
+    pub ip_hash: String,
+}
+
+/// Бан в мод-панели.
+#[derive(Debug, Clone)]
+pub struct ModBan {
+    pub id: i64,
+    pub ip_hash: String,
+    pub file_hash: String,
+    pub reason: String,
+    pub created_by: String,
+    pub created_at: String,
+    pub expires_at: String,
+}
+
+/// Запись лога модератора.
+#[derive(Debug, Clone)]
+pub struct ModLog {
+    pub moderator: String,
+    pub action: String,
+    pub target: String,
+    pub created_at: String,
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "mod_login.html")]
+pub struct ModLoginTemplate {
+    pub boards: Vec<BoardNav>,
+    pub action: String,
+    pub csrf: String,
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "mod_panel.html")]
+pub struct ModPanelTemplate {
+    pub boards: Vec<BoardNav>,
+    pub base: String,
+    pub reports: Vec<ModReport>,
+    pub bans: Vec<ModBan>,
+    pub logs: Vec<ModLog>,
+    pub csrf: String,
+}

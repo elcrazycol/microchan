@@ -46,7 +46,7 @@ async fn main() -> anyhow::Result<()> {
     let hsts = config.security.hsts;
     let app = Router::new()
         .route("/health", axum::routing::get(handler_health))
-        .merge(routes::router())
+        .merge(routes::router(&config))
         .nest_service("/static", ServeDir::new("static"))
         .nest_service("/files", ServeDir::new(&config.server.data_dir))
         .layer(middleware::from_fn(move |req, next| {

@@ -1,4 +1,4 @@
-{% macro post(p) %}
+{% macro post(p, csrf) %}
 <article class="post{% if p.is_op %} op{% endif %}{% if p.deleted %} deleted{% endif %}" id="p{{ p.id }}">
   <div class="post-head">
     {% if p.sticky %}<span class="sticky-flag">Sticky</span>{% endif %}
@@ -36,6 +36,13 @@
     <a href="#reply" class="reply-link" data-ref="{{ p.id }}">Reply</a>
     <a href="#report{{ p.id }}" class="report-link" data-ref="{{ p.id }}">Report</a>
   </div>
+  {% if !p.deleted %}
+  <form class="report-form hidden" action="/{{ p.board }}/report/{{ p.id }}" method="post">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="text" name="reason" maxlength="200" placeholder="Reason">
+    <button type="submit">Submit report</button>
+  </form>
+  {% endif %}
 </article>
 {% endmacro %}
 

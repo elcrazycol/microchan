@@ -51,13 +51,18 @@ pub fn csrf_token() -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-/// Читает CSRF-токен из cookie-заголовка.
-pub fn csrf_from_cookie(headers: &HeaderMap) -> Option<String> {
+/// Читает значение cookie по имени.
+pub fn cookie_value(headers: &HeaderMap, name: &str) -> Option<String> {
     let cookie = headers.get("cookie")?.to_str().ok()?;
     cookie.split(';').map(str::trim).find_map(|kv| {
         let (k, v) = kv.split_once('=')?;
-        (k == "csrf").then(|| v.to_string())
+        (k == name).then(|| v.to_string())
     })
+}
+
+/// Читает CSRF-токен из cookie-заголовка.
+pub fn csrf_from_cookie(headers: &HeaderMap) -> Option<String> {
+    cookie_value(headers, "csrf")
 }
 
 /// Проверяет double-submit: токен формы должен совпадать с токеном cookie.

@@ -21,10 +21,10 @@
 
 {% for t in threads %}
   <section class="thread">
-    {{ ui::post(t.op) }}
+    {{ ui::post(t.op, csrf) }}
     <div class="thread-replies">
       {% for r in t.replies %}
-        {{ ui::post(r) }}
+        {{ ui::post(r, csrf) }}
       {% endfor %}
     </div>
     {% if t.omitted > 0 %}

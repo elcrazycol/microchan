@@ -179,6 +179,11 @@ impl Config {
             .with_context(|| format!("cannot read config file {path}"))?;
         let mut cfg: Config = toml::from_str(&raw).context("invalid config file")?;
 
+        // Пустой secret-url = без secret-url.
+        if cfg.moderation.mod_secret_url.as_deref() == Some("") {
+            cfg.moderation.mod_secret_url = None;
+        }
+
         // Переопределения из окружения.
         if let Ok(url) = std::env::var("DATABASE_URL") {
             cfg.database.url = url;

@@ -49,6 +49,7 @@ pub struct Validated {
     pub original_name: String,
     pub kind: Kind,
     pub spoiler: bool,
+    pub sha256: String,
 }
 
 /// Метаданные сохранённого файла (для записи в БД).
@@ -125,11 +126,14 @@ pub fn validate(
         return Err(AppError::bad_request("File is empty"));
     }
 
+    let sha256 = file_hash(&data);
+
     Ok(Validated {
         data,
         original_name,
         kind,
         spoiler,
+        sha256,
     })
 }
 
@@ -176,8 +180,6 @@ pub async fn store(
         }
     };
 
-    let sha256 = file_hash(&v.data);
-
     Ok(Stored {
         original_name: v.original_name.clone(),
         stored_name,
@@ -186,7 +188,7 @@ pub async fn store(
         size: v.data.len() as i64,
         width,
         height,
-        sha256,
+        sha256: v.sha256.clone(),
         spoiler: v.spoiler,
     })
 }
