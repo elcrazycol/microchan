@@ -41,10 +41,6 @@ pub struct FileView {
     pub stored_name: String,
     pub thumb_name: String,
     pub original_name: String,
-    pub mime: String,
-    pub width: Option<i32>,
-    pub height: Option<i32>,
-    pub size: i64,
     pub spoiler: bool,
     pub is_video: bool,
 }
@@ -56,10 +52,6 @@ impl FileView {
             stored_name: f.stored_name.clone(),
             thumb_name: f.thumb_name.clone(),
             original_name: f.original_name.clone(),
-            mime: f.mime.clone(),
-            width: f.width,
-            height: f.height,
-            size: f.size,
             spoiler: f.spoiler,
             is_video,
         }
@@ -189,7 +181,6 @@ pub struct ModReport {
 /// Бан в мод-панели.
 #[derive(Debug, Clone)]
 pub struct ModBan {
-    pub id: i64,
     pub ip_hash: String,
     pub file_hash: String,
     pub reason: String,

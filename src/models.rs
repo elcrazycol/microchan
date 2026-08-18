@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 
 /// Тред. id треда равен id поста-ОПа.
+#[allow(dead_code)]
 #[derive(Debug, Clone, FromRow)]
 pub struct ThreadRow {
     pub id: i64,
@@ -16,6 +17,7 @@ pub struct ThreadRow {
 
 /// Пост. Номер поста (id) глобальный, как в классических бордах.
 /// Для ОПа thread_id = None (тред создаётся по id ОПа).
+#[allow(dead_code)]
 #[derive(Debug, Clone, FromRow)]
 pub struct PostRow {
     pub id: i64,
@@ -34,6 +36,7 @@ pub struct PostRow {
 }
 
 /// Файл, прикреплённый к посту.
+#[allow(dead_code)]
 #[derive(Debug, Clone, FromRow)]
 pub struct FileRow {
     pub id: i64,
@@ -51,6 +54,7 @@ pub struct FileRow {
 }
 
 /// Бан по хэшу IP или файла.
+#[allow(dead_code)]
 #[derive(Debug, Clone, FromRow)]
 pub struct BanRow {
     pub id: i64,
@@ -62,18 +66,8 @@ pub struct BanRow {
     pub expires_at: Option<DateTime<Utc>>,
 }
 
-/// Жалоба на пост.
-#[derive(Debug, Clone, FromRow)]
-pub struct ReportRow {
-    pub id: i64,
-    pub post_id: i64,
-    pub reason: Option<String>,
-    pub ip_hash: String,
-    pub created_at: DateTime<Utc>,
-    pub resolved: bool,
-}
-
 /// Запись в логе действий модератора.
+#[allow(dead_code)]
 #[derive(Debug, Clone, FromRow)]
 pub struct ModLogRow {
     pub id: i64,

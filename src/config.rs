@@ -1,7 +1,6 @@
 use anyhow::{bail, Context, Result};
 use ipnet::IpNet;
 use serde::Deserialize;
-use std::net::IpAddr;
 use std::path::PathBuf;
 
 /// Корневая конфигурация приложения.
@@ -220,12 +219,5 @@ impl Config {
 
     pub fn board(&self, short: &str) -> Option<&BoardConfig> {
         self.boards.iter().find(|b| b.short == short)
-    }
-
-    pub fn is_trusted_proxy(&self, ip: &IpAddr) -> bool {
-        self.server
-            .trusted_proxies
-            .iter()
-            .any(|net| net.contains(ip))
     }
 }

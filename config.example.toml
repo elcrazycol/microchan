@@ -29,7 +29,7 @@ hsts = false
 [moderation]
 # Обязательно смените! Пароль входа в модераторскую.
 admin_password = "change-me-please"
-# Если задан — модераторская доступна только по /mod/<secret>/
+# Если задан — модераторская доступна только по /mod/<secret>
 mod_secret_url = ""
 # Срок жизни сессии модератора, часов
 session_hours = 12

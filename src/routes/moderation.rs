@@ -121,7 +121,6 @@ async fn panel(
     let bans: Vec<ModBan> = bans
         .into_iter()
         .map(|b| ModBan {
-            id: b.id,
             ip_hash: b.ip_hash.unwrap_or_default(),
             file_hash: b.file_hash.unwrap_or_default(),
             reason: b.reason,
