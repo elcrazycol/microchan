@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE posts SET deleted = true WHERE id = $1 OR thread_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "78a1803e7bbddcf26834a4a6c3159b3f470a9c3a3da1c93940bc8f1076a8c953"
+}

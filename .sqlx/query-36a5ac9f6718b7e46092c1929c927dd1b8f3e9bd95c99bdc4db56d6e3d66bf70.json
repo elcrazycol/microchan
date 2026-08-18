@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE threads SET deleted = true\n             WHERE board = $1 AND NOT deleted AND NOT sticky\n               AND last_bump < now() - make_interval(days => $2::int)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "36a5ac9f6718b7e46092c1929c927dd1b8f3e9bd95c99bdc4db56d6e3d66bf70"
+}

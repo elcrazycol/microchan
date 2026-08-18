@@ -21,20 +21,35 @@
 ## Быстрый старт
 
 ```bash
-# 1. Создать базу данных
+# 1. Создать базу данных (PostgreSQL должен быть запущен)
 createdb microchan
 
-# 2. Настроить конфиг (секреты обязательны)
+# 2. Скопировать и отредактировать конфиг
 cp config.example.toml config.toml
-$EDITOR config.toml
+$EDITOR config.toml   # database.url, security.secret, moderation.admin_password
 
-# 3. Собрать и запустить
-export DATABASE_URL=postgres://localhost/microchan
-cargo run
+# 3. Собрать и запустить (БД для сборки не нужна — SQLx offline)
+cargo run --release
 ```
 
 При первом запуске миграции применяются автоматически. Доски создаются,
 редактируются и удаляются только через `config.toml`.
+
+## Сборка без базы данных
+
+Все SQL-запросы проверяются SQLx на этапе компиляции. Чтобы сборка не
+требовала живой БД, в репозиторий закоммичен offline-кэш (`.sqlx/`), поэтому
+`cargo build` работает без `DATABASE_URL`. Подключение к БД задаётся через
+`database.url` в `config.toml` (переменная `DATABASE_URL` при запуске его
+переопределяет).
+
+При изменении SQL-запросов кэш нужно обновить (нужна запущенная БД со схемой
+и установленный `sqlx-cli`):
+
+```bash
+export DATABASE_URL=postgres://localhost/microchan
+cargo sqlx prepare
+```
 
 ## Возможности
 
@@ -72,7 +87,7 @@ cargo run
 
 | Переменная | Назначение |
 |---|---|
-| `DATABASE_URL` | строка подключения к PostgreSQL |
+| `DATABASE_URL` | (опционально) переопределяет `database.url`; при сборке включает live-проверку SQLx |
 | `MICROCHAN_SECRET` | секрет для HMAC-хэширования IP |
 | `MICROCHAN_CONFIG` | путь к конфигу (по умолчанию `config.toml`) |
 | `RUST_LOG` | уровень логирования |

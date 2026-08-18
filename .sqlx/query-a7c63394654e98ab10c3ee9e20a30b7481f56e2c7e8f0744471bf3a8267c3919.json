@@ -1,0 +1,160 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM files WHERE post_id = ANY($1) AND NOT deleted",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "post_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "post_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "original_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "original_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "stored_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "stored_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "thumb_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "thumb_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "mime",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "mime"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "size",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "size"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "width",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "width"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "height",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "height"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "spoiler",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "spoiler"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "deleted",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "deleted"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a7c63394654e98ab10c3ee9e20a30b7481f56e2c7e8f0744471bf3a8267c3919"
+}

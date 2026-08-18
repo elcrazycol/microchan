@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.id, t.sticky, t.post_count,\n                op.subject,\n                (SELECT count(*)::bigint FROM files f\n                  WHERE f.post_id = op.id AND NOT f.deleted) AS image_count,\n                (SELECT f.thumb_name FROM files f\n                  WHERE f.post_id = op.id AND NOT f.deleted ORDER BY f.id LIMIT 1) AS thumb_name\n         FROM threads t\n         JOIN posts op ON op.id = t.id\n         WHERE t.board = $1 AND NOT t.deleted\n         ORDER BY t.sticky DESC, t.last_bump DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "threads",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "sticky",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "threads",
+            "name": "sticky"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "post_count",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "threads",
+            "name": "post_count"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "subject",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "subject"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "image_count",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "thumb_name",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "b835f1e81fcd3375e1a3351c53f22f4a56fef10901c3b7c38db94ddf87c7fd81"
+}

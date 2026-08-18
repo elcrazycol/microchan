@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE posts SET deleted = true, delete_reason = 'moderator' WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c09e9b57d2e01f3f8413fc63ab4b1be3f2074752bcdcad986eae8f03728d17b3"
+}

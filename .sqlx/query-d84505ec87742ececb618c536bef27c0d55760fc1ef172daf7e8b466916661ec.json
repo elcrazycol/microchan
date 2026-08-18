@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.thread_id, count(*) AS cnt\n         FROM files f JOIN posts p ON p.id = f.post_id\n         WHERE p.thread_id = ANY($1) AND NOT f.deleted\n         GROUP BY p.thread_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "thread_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "thread_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "cnt",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      true,
+      null
+    ]
+  },
+  "hash": "d84505ec87742ececb618c536bef27c0d55760fc1ef172daf7e8b466916661ec"
+}

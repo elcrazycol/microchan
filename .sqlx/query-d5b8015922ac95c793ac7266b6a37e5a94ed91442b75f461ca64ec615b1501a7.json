@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM mod_logs ORDER BY id DESC LIMIT $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "mod_logs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "moderator",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "mod_logs",
+            "name": "moderator"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "action",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "mod_logs",
+            "name": "action"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "target",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "mod_logs",
+            "name": "target"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "mod_logs",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "d5b8015922ac95c793ac7266b6a37e5a94ed91442b75f461ca64ec615b1501a7"
+}

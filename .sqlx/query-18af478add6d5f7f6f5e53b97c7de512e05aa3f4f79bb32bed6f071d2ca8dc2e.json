@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT 1 AS one FROM bans WHERE file_hash = $1 AND (expires_at IS NULL OR expires_at > now()) LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "one",
+        "type_info": "Int4",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "18af478add6d5f7f6f5e53b97c7de512e05aa3f4f79bb32bed6f071d2ca8dc2e"
+}

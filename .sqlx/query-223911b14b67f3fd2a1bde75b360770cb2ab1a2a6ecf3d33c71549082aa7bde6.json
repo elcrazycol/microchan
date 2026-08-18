@@ -1,0 +1,173 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.thread_id, p.board, p.is_op, p.name, p.tripcode, p.email,\n                p.subject, p.body, p.ip_hash, p.created_at, p.deleted, p.delete_reason\n         FROM (\n            SELECT p.*, ROW_NUMBER() OVER (PARTITION BY thread_id ORDER BY id DESC) AS rn\n            FROM posts p\n            WHERE thread_id = ANY($1) AND NOT deleted AND NOT is_op\n         ) p WHERE p.rn <= $2 ORDER BY p.thread_id, p.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "thread_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "thread_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "board",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "board"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "is_op",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "is_op"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "tripcode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "tripcode"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "subject",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "subject"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "body",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "body"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "ip_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "ip_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "deleted",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "deleted"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "delete_reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "delete_reason"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "223911b14b67f3fd2a1bde75b360770cb2ab1a2a6ecf3d33c71549082aa7bde6"
+}
