@@ -1,6 +1,7 @@
 mod config;
 mod db;
 mod error;
+mod models;
 mod state;
 
 use std::net::SocketAddr;
