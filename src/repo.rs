@@ -611,6 +611,72 @@ pub async fn delete_thread(pool: &PgPool, thread_id: i64) -> Result<()> {
     Ok(())
 }
 
+/// Авто-прунинг доски: удаляет треды старше `max_age_days` и превышающие
+/// `thread_limit` (не считая sticky). Возвращает число удалённых тредов.
+pub async fn prune_board(
+    pool: &PgPool,
+    board: &str,
+    thread_limit: usize,
+    max_age_days: Option<i64>,
+) -> Result<u64> {
+    let mut tx = pool.begin().await.context("begin prune")?;
+    let mut deleted: u64 = 0;
+
+    if let Some(days) = max_age_days.filter(|d| *d > 0) {
+        let res = sqlx::query!(
+            "UPDATE threads SET deleted = true
+             WHERE board = $1 AND NOT deleted AND NOT sticky
+               AND last_bump < now() - make_interval(days => $2::int)",
+            board,
+            days as i32
+        )
+        .execute(&mut *tx)
+        .await
+        .context("prune by age")?;
+        deleted += res.rows_affected();
+    }
+
+    if thread_limit > 0 {
+        let res = sqlx::query!(
+            "UPDATE threads SET deleted = true
+             WHERE id IN (
+                 SELECT id FROM threads
+                 WHERE board = $1 AND NOT deleted AND NOT sticky
+                 ORDER BY last_bump DESC OFFSET $2
+             )",
+            board,
+            thread_limit as i64
+        )
+        .execute(&mut *tx)
+        .await
+        .context("prune by limit")?;
+        deleted += res.rows_affected();
+    }
+
+    // Помечаем посты и файлы удалённых тредов.
+    sqlx::query!(
+        "UPDATE posts SET deleted = true
+         WHERE thread_id IN (SELECT id FROM threads WHERE board = $1 AND deleted)
+            OR id IN (SELECT id FROM threads WHERE board = $1 AND deleted)",
+        board
+    )
+    .execute(&mut *tx)
+    .await
+    .context("prune posts")?;
+
+    sqlx::query!(
+        "UPDATE files SET deleted = true
+         WHERE post_id IN (SELECT id FROM posts WHERE board = $1 AND deleted)",
+        board
+    )
+    .execute(&mut *tx)
+    .await
+    .context("prune files")?;
+
+    tx.commit().await.context("commit prune")?;
+    Ok(deleted)
+}
+
 // ---------------------------------------------------------------- Sessions
 
 pub async fn create_session(pool: &PgPool, token: &str, expires_at: DateTime<Utc>) -> Result<()> {

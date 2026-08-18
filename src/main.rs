@@ -41,7 +41,10 @@ async fn main() -> anyhow::Result<()> {
     std::fs::create_dir_all(&config.server.data_dir)?;
 
     let pool = db::connect_and_migrate(&config).await?;
-    let state = AppState::new(config.clone(), pool);
+    let state = AppState::new(config.clone(), pool.clone());
+
+    // Фоновый прунинг старых тредов (раз в час).
+    spawn_pruning(pool, config.clone());
 
     let hsts = config.security.hsts;
     let app = Router::new()
@@ -68,4 +71,25 @@ async fn main() -> anyhow::Result<()> {
 
 async fn handler_health() -> &'static str {
     "ok"
+}
+
+/// Периодический авто-прунинг всех досок.
+fn spawn_pruning(pool: sqlx::PgPool, config: config::Config) {
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(3600)).await;
+            for board in &config.boards {
+                if let Err(e) = repo::prune_board(
+                    &pool,
+                    &board.short,
+                    board.thread_limit,
+                    board.max_thread_age_days,
+                )
+                .await
+                {
+                    tracing::warn!("prune {} failed: {e:#}", board.short);
+                }
+            }
+        }
+    });
 }

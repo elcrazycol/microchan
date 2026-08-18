@@ -83,7 +83,16 @@ async fn create_thread(
     .await;
 
     match result {
-        Ok(thread_id) => Ok(Redirect::to(&format!("/{board}/thread/{thread_id}"))),
+        Ok(thread_id) => {
+            let _ = repo::prune_board(
+                &state.pool,
+                &board,
+                bcfg.thread_limit,
+                bcfg.max_thread_age_days,
+            )
+            .await;
+            Ok(Redirect::to(&format!("/{board}/thread/{thread_id}")))
+        }
         Err(e) => {
             media::cleanup(&stored, &board, &state.config.server.data_dir).await;
             Err(AppError::Internal(e))
