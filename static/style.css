@@ -253,6 +253,31 @@ button:hover, .btn:hover { background: var(--accent-dark); text-decoration: none
   margin: 0.3rem 0 0.1rem;
 }
 .catalog-item .c-meta { color: var(--muted); font-size: 0.8rem; }
+.catalog-item.sticky { border-color: #6a8f17; }
+.catalog-item .no-thumb {
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  background: #e8e6df;
+  border-radius: 3px;
+}
+
+/* Jump form in header */
+.jump-form {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  margin-left: auto;
+}
+.jump-form input[type=number] {
+  width: 6.5rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+}
 
 /* Pagination / nav bar */
 .board-nav-bar {

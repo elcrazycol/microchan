@@ -15,6 +15,10 @@
     <a href="/{{ b.short }}/"{% if b.nsfw %} class="nsfw"{% endif %} title="{{ b.title }}">/{{ b.short }}/</a>
     {% endfor %}
   </nav>
+  <form class="jump-form" action="/jump" method="get">
+    <input type="number" name="n" min="1" placeholder="№ post">
+    <button type="submit">Go</button>
+  </form>
 </header>
 <main class="content">
 {% block content %}{% endblock %}

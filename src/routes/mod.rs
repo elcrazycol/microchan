@@ -1,4 +1,5 @@
 pub mod board;
+pub mod catalog;
 pub mod index;
 pub mod post;
 pub mod thread;
@@ -14,4 +15,5 @@ pub fn router() -> Router<AppState> {
         .merge(board::router())
         .merge(thread::router())
         .merge(post::router())
+        .merge(catalog::router())
 }

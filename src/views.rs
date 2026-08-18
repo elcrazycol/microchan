@@ -140,6 +140,26 @@ pub struct BoardTemplate {
     pub post_url: String,
 }
 
+/// Ячейка каталога.
+#[derive(Debug, Clone)]
+pub struct CatalogThread {
+    pub id: i64,
+    pub subject: String,
+    pub replies: i64,
+    pub images: i64,
+    /// URL превью (пусто, если у ОПа нет файлов).
+    pub thumb_url: String,
+    pub sticky: bool,
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "catalog.html")]
+pub struct CatalogTemplate {
+    pub boards: Vec<BoardNav>,
+    pub board: BoardNav,
+    pub threads: Vec<CatalogThread>,
+}
+
 #[derive(Template, WebTemplate)]
 #[template(path = "thread.html")]
 pub struct ThreadPageTemplate {

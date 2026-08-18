@@ -376,6 +376,62 @@ async fn insert_files(
     Ok(())
 }
 
+/// Элемент каталога: ОП треда с превью и счётчиками.
+pub struct CatalogItem {
+    pub id: i64,
+    pub subject: Option<String>,
+    pub reply_count: i64,
+    pub image_count: i64,
+    pub sticky: bool,
+    /// Имя превью первого файла ОПа.
+    pub thumb_name: Option<String>,
+}
+
+/// Все треды доски для каталога (без пагинации, только ОП и первое превью).
+pub async fn catalog(pool: &PgPool, board: &str) -> Result<Vec<CatalogItem>> {
+    let rows = sqlx::query!(
+        "SELECT t.id, t.sticky, t.post_count,
+                op.subject,
+                (SELECT count(*)::bigint FROM files f
+                  WHERE f.post_id = op.id AND NOT f.deleted) AS image_count,
+                (SELECT f.thumb_name FROM files f
+                  WHERE f.post_id = op.id AND NOT f.deleted ORDER BY f.id LIMIT 1) AS thumb_name
+         FROM threads t
+         JOIN posts op ON op.id = t.id
+         WHERE t.board = $1 AND NOT t.deleted
+         ORDER BY t.sticky DESC, t.last_bump DESC",
+        board
+    )
+    .fetch_all(pool)
+    .await
+    .context("query catalog")?;
+
+    Ok(rows
+        .into_iter()
+        .map(|r| CatalogItem {
+            id: r.id,
+            subject: r.subject,
+            reply_count: (r.post_count - 1).max(0) as i64,
+            image_count: r.image_count.unwrap_or(0),
+            sticky: r.sticky,
+            thumb_name: r.thumb_name,
+        })
+        .collect())
+}
+
+/// Находит доску и тред поста (для перехода по номеру поста).
+pub async fn post_location(pool: &PgPool, post_id: i64) -> Result<Option<(String, i64)>> {
+    let row = sqlx::query!(
+        "SELECT board, COALESCE(thread_id, id) AS tid
+         FROM posts WHERE id = $1 AND NOT deleted",
+        post_id
+    )
+    .fetch_optional(pool)
+    .await
+    .context("query post location")?;
+    Ok(row.and_then(|r| r.tid.map(|tid| (r.board, tid))))
+}
+
 async fn query_scalar_count_threads(pool: &PgPool, board: &str) -> Result<i64> {
     let n: Option<i64> = sqlx::query_scalar!(
         "SELECT count(*) FROM threads WHERE board = $1 AND NOT deleted",

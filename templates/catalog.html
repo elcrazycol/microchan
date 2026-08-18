@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}/{{ board.short }}/ — Catalog{% endblock %}
+
+{% block content %}
+<header class="board-head">
+  <h1>/{{ board.short }}/ — {{ board.title }}</h1>
+  {% if board.description.len() > 0 %}<p class="board-desc">{{ board.description }}</p>{% endif %}
+  <nav class="board-nav-bar">
+    <a href="/{{ board.short }}/catalog">[Catalog]</a>
+    <a href="/{{ board.short }}/">[Index]</a>
+  </nav>
+</header>
+
+{% if threads.len() == 0 %}
+  <p class="notice">No threads yet.</p>
+{% endif %}
+
+<div class="catalog-grid">
+  {% for t in threads %}
+  <a class="catalog-item{% if t.sticky %} sticky{% endif %}" href="/{{ board.short }}/thread/{{ t.id }}">
+    {% if t.thumb_url.len() > 0 %}
+    <img src="{{ t.thumb_url }}" alt="" loading="lazy">
+    {% else %}
+    <div class="no-thumb">no image</div>
+    {% endif %}
+    <span class="c-subject">{% if t.subject.len() > 0 %}{{ t.subject }}{% else %}No subject{% endif %}</span>
+    <span class="c-meta">{{ t.replies }} replies, {{ t.images }} images</span>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}
