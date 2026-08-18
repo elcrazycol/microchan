@@ -1,0 +1,40 @@
+{% macro post(p) %}
+<article class="post{% if p.is_op %} op{% endif %}{% if p.deleted %} deleted{% endif %}" id="p{{ p.id }}">
+  <div class="post-head">
+    {% if p.sticky %}<span class="sticky-flag">Sticky</span>{% endif %}
+    {% if p.locked %}<span class="locked-flag">Locked</span>{% endif %}
+    {% if p.subject.len() > 0 %}<span class="subject">{{ p.subject }}</span>{% endif %}
+    <span class="name{% if p.is_op %} admin{% endif %}">{{ p.name }}</span>
+    {% if p.tripcode.len() > 0 %}<span class="tripcode">!{{ p.tripcode }}</span>{% endif %}
+    {% if p.sage %}<span class="sage">sage</span>{% endif %}
+    <span class="time">{{ p.time }}</span>
+    {% if p.counts.len() > 0 %}<span class="time">{{ p.counts }}</span>{% endif %}
+    <span class="post-no"><a href="#p{{ p.id }}">No.{{ p.id }}</a></span>
+  </div>
+  {% if p.deleted %}
+    <div class="body"><em>Post deleted{% if p.delete_reason.len() > 0 %}: {{ p.delete_reason }}{% endif %}</em></div>
+  {% else %}
+    {% if p.files.len() > 0 %}
+    <div class="files">
+      {% for f in p.files %}
+      <div class="file{% if f.spoiler %} spoiler{% endif %}">
+        <a href="/files/{{ p.board }}/src/{{ f.stored_name }}">
+          {% if f.is_video %}
+          <video class="thumb" src="/files/{{ p.board }}/thumb/{{ f.stored_name }}" muted preload="metadata"></video>
+          {% else %}
+          <img class="thumb" src="/files/{{ p.board }}/thumb/{{ f.stored_name }}" alt="" loading="lazy">
+          {% endif %}
+        </a>
+        <span class="fname" title="{{ f.original_name }}">{{ f.original_name }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="body">{{ p.body_html|safe }}</div>
+  {% endif %}
+  <div class="actions">
+    <a href="#reply" class="reply-link" data-ref="{{ p.id }}">Reply</a>
+    <a href="#report{{ p.id }}" class="report-link" data-ref="{{ p.id }}">Report</a>
+  </div>
+</article>
+{% endmacro %}

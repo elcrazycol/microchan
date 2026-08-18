@@ -1,7 +1,9 @@
 mod config;
 mod db;
 mod error;
+mod markup;
 mod models;
+mod repo;
 mod routes;
 mod state;
 mod views;

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui %}
+
+{% block title %}/{{ board.short }}/ — {{ board.title }}{% endblock %}
+
+{% block content %}
+<header class="board-head">
+  <h1>/{{ board.short }}/ — {{ board.title }}</h1>
+  {% if board.description.len() > 0 %}<p class="board-desc">{{ board.description }}</p>{% endif %}
+  <nav class="board-nav-bar">
+    <a href="/{{ board.short }}/catalog">[Catalog]</a>
+    <a href="/{{ board.short }}/">[Index]</a>
+  </nav>
+</header>
+
+{% if threads.len() == 0 %}
+  <p class="notice">No threads yet. Be the first to start one.</p>
+{% endif %}
+
+{% for t in threads %}
+  <section class="thread">
+    {{ ui::post(t.op) }}
+    <div class="thread-replies">
+      {% for r in t.replies %}
+        {{ ui::post(r) }}
+      {% endfor %}
+    </div>
+    {% if t.omitted > 0 %}
+    <div class="thread-omitted">
+      {{ t.omitted }} post(s) omitted. <a href="/{{ board.short }}/thread/{{ t.op.id }}">View full thread</a>
+    </div>
+    {% endif %}
+  </section>
+{% endfor %}
+
+{% if threads.len() > 0 %}
+<div class="page-links">
+  {% if page > 0 %}<a href="/{{ board.short }}/{{ page - 1 }}">Prev</a>{% endif %}
+  <span class="cur">{{ page + 1 }}</span>
+  {% if has_next %}<a href="/{{ board.short }}/{{ page + 1 }}">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}
