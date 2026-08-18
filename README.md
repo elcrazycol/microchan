@@ -1,125 +1,79 @@
 # microchan
 
-Минималистичный imageboard-движок на Rust. Монолит, server-side rendering,
-анонимность по умолчанию, никакого bloat: только то, что нужно для
-классического imageboard-опыта, но сделанное качественно.
+A minimal imageboard engine in Rust: a monolith, server-side rendered,
+anonymous by default, no bloat. Just the classic imageboard experience, done well.
 
-## Стек
+**Читать на русском: [README_ru.md](README_ru.md).**
 
-- Rust (stable), Axum
-- PostgreSQL 16+, SQLx (compile-time checked)
-- Askama (SSR-шаблоны), минимум JavaScript
-- `image`/`webp` для превью, `ffmpeg` (опционально) для видео-превью
-- TOML + переменные окружения, `tracing`
-
-## Требования
+## Requirements
 
 - Rust (stable)
-- PostgreSQL 16+ (запущенный сервер)
-- `ffmpeg` — опционально, только для превью видео (webm/mp4)
+- PostgreSQL 16+
+- `ffmpeg` (optional, for video thumbnails only)
 
-## Быстрый старт
+## Quick start
 
 ```bash
-# 1. Создать базу данных (PostgreSQL должен быть запущен)
 createdb microchan
-
-# 2. Скопировать и отредактировать конфиг
 cp config.example.toml config.toml
 $EDITOR config.toml   # database.url, security.secret, moderation.admin_password
-#    в database.url обязательно укажите имя пользователя БД:
-#    postgres://ВАШ_ПОЛЬЗОВАТЕЛЬ@localhost/microchan (узнайте его через `whoami`)
-
-# 3. Собрать и запустить (БД для сборки не нужна — SQLx offline)
 cargo run --release
 ```
 
-При первом запуске миграции применяются автоматически. Доски создаются,
-редактируются и удаляются только через `config.toml`.
+Migrations run automatically on first start. Boards are managed only via `config.toml`.
 
-## Сборка без базы данных
+Set your PostgreSQL username in `database.url` (usually your OS user, `whoami`):
 
-Все SQL-запросы проверяются SQLx на этапе компиляции. Чтобы сборка не
-требовала живой БД, в репозиторий закоммичен offline-кэш (`.sqlx/`), поэтому
-`cargo build` работает без `DATABASE_URL`. Подключение к БД задаётся через
-`database.url` в `config.toml` (переменная `DATABASE_URL` при запуске его
-переопределяет).
+```toml
+[database]
+url = "postgres://yourname@localhost/microchan"
+```
 
-При изменении SQL-запросов кэш нужно обновить (нужна запущенная БД со схемой
-и установленный `sqlx-cli`):
+Building needs no database — the SQLx offline cache (`.sqlx/`) is committed. After
+changing SQL queries, refresh it:
 
 ```bash
-export DATABASE_URL=postgres://YOUR_USERNAME@localhost/microchan
+export DATABASE_URL=postgres://yourname@localhost/microchan
 cargo sqlx prepare
 ```
 
-### Ошибка «role "anonymous" does not exist»
+## Features
 
-SQLx 0.9 при сборке и подключении к PostgreSQL, если в URL **не указан**
-пользователь, подставляет роль `anonymous` (из-за известного поведения крейта
-`whoami`, собранного без feature `std`). Исправление одно — всегда указывайте
-имя пользователя в URL подключения:
+- **Boards** — config-managed: title, description, NSFW, thread limit,
+  files-per-post limit, allowed extensions, max file size.
+- **Threads & posts** — sage, bump limit, sticky/lock, `>>123` quotes,
+  greentext, `[spoiler]…[/spoiler]`, classic (`#`) and secure (`##`) tripcodes,
+  subject, email.
+- **Media** — 1..N files per post (JPEG/PNG/WebP/GIF/WebM/MP4), magic-byte
+  validation, thumbnails, image spoilers.
+- **Catalog & navigation** — paginated board index, thumbnail grid, jump-to-post.
+- **Moderation** — delete post/thread, IP/file-hash bans, reports, action log,
+  simple mod panel.
+- **Pruning** — auto-removal of threads over `max_thread_age_days` / `thread_limit`.
 
-```
-postgres://ВАШ_ПОЛЬЗОВАТЕЛЬ@localhost/microchan
-```
+## Security
 
-Имя пользователя БД обычно совпадает с именем пользователя ОС (`whoami`).
-Убедитесь также, что в оболочке не выставлен `DATABASE_URL` без имени
-пользователя — он переопределяет `database.url` и на этапе сборки, и при
-запуске. Для сборки он вообще не нужен (см. выше про offline-кэш `.sqlx/`).
+- IPs stored only as HMAC-SHA256; rotation via `security.old_secrets`.
+- CSRF protection and security headers (CSP, X-Frame-Options, Referrer-Policy, HSTS).
+- Posting rate limit, magic-byte checks, size/resolution limits.
+- Real IP from `X-Forwarded-For` only when the proxy is trusted.
 
-## Возможности
+## Configuration
 
-- **Доски** — только из конфига: имя, название, описание, NSFW, лимит тредов,
-  лимит картинок на пост, разрешённые расширения, максимальный размер файла.
-- **Треды и посты** — создание треда/ответа, sage, bump-limit, sticky/lock,
-  цитаты `>>123`, greentext (`>`), спойлеры `[spoiler]…[/spoiler]`, имя,
-  классический (`#`) и secure (`##`) трипкоды, тема, e-mail.
-- **Медиа** — 1..N файлов на пост, JPEG/PNG/WebP/GIF/WebM/MP4, проверка
-  magic bytes, генерация превью (картинки и видео), спойлер-картинки.
-- **Каталог и навигация** — индекс доски с пагинацией, каталог-сетка превью,
-  быстрый переход по номеру поста.
-- **Модерация** — удаление поста/треда, бан по хэшу IP или файла (с причиной
-  и сроком), жалобы + список, лог действий, простая мод-панель (пароль из
-  конфига, опционально секретный URL).
-- **Прунинг** — автоматическое удаление тредов старше `max_thread_age_days`
-  и превышающих `thread_limit` (sticky не удаляются), фоновая задача раз в час.
+See `config.example.toml`. Environment variables:
 
-## Безопасность
-
-- IP хранится только как HMAC-SHA256 с секретом из конфига; поддержка ротации
-  секрета (`security.old_secrets`). Реальный IP никогда не пишется в БД.
-- CSRF-защита на всех формах (double-submit cookie).
-- Security-заголовки: CSP, X-Frame-Options, Referrer-Policy,
-  X-Content-Type-Options, HSTS (при HTTPS).
-- Rate-limit на постинг по хэшу IP.
-- Проверка magic bytes загружаемых файлов, лимиты размера и разрешения.
-- Работа за обратным прокси с реальным IP из `X-Forwarded-For`
-  (только от доверенных прокси из конфига).
-
-## Конфигурация
-
-Смотрите `config.example.toml` — там все опции с комментариями. Переменные
-окружения:
-
-| Переменная | Назначение |
+| Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | (опционально) переопределяет `database.url`; при сборке включает live-проверку SQLx |
-| `MICROCHAN_SECRET` | секрет для HMAC-хэширования IP |
-| `MICROCHAN_CONFIG` | путь к конфигу (по умолчанию `config.toml`) |
-| `RUST_LOG` | уровень логирования |
+| `DATABASE_URL` | overrides `database.url` |
+| `MICROCHAN_SECRET` | HMAC secret for IP hashing |
+| `MICROCHAN_CONFIG` | config path (default `config.toml`) |
+| `RUST_LOG` | log level |
 
-## Развёртывание
+## Deployment
 
-Рекомендуется за reverse-прокси (nginx/caddy) с HTTPS:
+Run behind a reverse proxy (nginx/caddy) with HTTPS. Enable `security.hsts = true`
+when serving over HTTPS.
 
-1. Соберите бинарник: `cargo build --release`.
-2. Скопируйте `config.toml` и задайте `secret`, `admin_password`, доски.
-3. Статика раздаётся самим приложением (`/static`, `/files`); можно отдавать
-   её и через прокси.
-4. При работе по HTTPS включите `security.hsts = true`.
-
-## Лицензия
+## License
 
 Apache-2.0

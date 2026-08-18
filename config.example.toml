@@ -1,56 +1,55 @@
-# Пример конфигурации microchan.
-# Скопируйте в config.toml, отредактируйте секреты и запустите.
+# Example microchan configuration.
+# Copy to config.toml, edit the secrets, and run.
 
 [server]
 host = "127.0.0.1"
 port = 8080
-# Публичный URL (для корректных ссылок)
+# Public URL (for correct links)
 base_url = "http://localhost:8080"
-# Каталог для загруженных файлов
+# Directory for uploaded files
 data_dir = "data"
-# Доверенные прокси (IP или CIDR) — от них принимаем X-Forwarded-For
+# Trusted proxies (IP or CIDR) — their X-Forwarded-For is accepted
 trusted_proxies = ["127.0.0.1/32"]
 
 [database]
-# ВАЖНО: укажите имя пользователя PostgreSQL (обычно это имя пользователя ОС,
-# узнаётся командой `whoami`). Без него SQLx 0.9 подставит роль "anonymous"
-# и подключение упадёт с ошибкой «role "anonymous" does not exist».
+# IMPORTANT: set your PostgreSQL username (usually your OS user, see `whoami`).
+# Without it SQLx 0.9 falls back to role "anonymous" and the connection fails.
 url = "postgres://YOUR_USERNAME@localhost/microchan"
 
 [security]
-# Обязательно смените! Секрет для HMAC-хэширования IP.
+# Change me! Secret for HMAC-hashing IPs.
 secret = "change-me-please"
-# Отдельная соль для secure-трипкодов (необязательно; по умолчанию = secret)
+# Optional separate salt for secure tripcodes (defaults to `secret`)
 #secure_trip_salt = "change-me-too"
-# Старые секреты для ротации (проверка старых банов)
+# Old secrets for rotation (still checked for bans)
 old_secrets = []
-# Максимум постов с одного IP-хэша в минуту
+# Max posts per IP hash per minute
 max_posts_per_minute = 10
-# HSTS (только при работе по HTTPS)
+# HSTS (only when serving over HTTPS)
 hsts = false
 
 [moderation]
-# Обязательно смените! Пароль входа в модераторскую.
+# Change me! Mod panel login password.
 admin_password = "change-me-please"
-# Если задан — модераторская доступна только по /mod/<secret>
+# If set, the mod panel is available only at /mod/<secret>
 mod_secret_url = ""
-# Срок жизни сессии модератора, часов
+# Mod session lifetime, hours
 session_hours = 12
 
 [media]
 thumb_width = 200
 thumb_height = 200
 thumb_quality = 80
-# Максимальная длительность видео в секундах (0 = без ограничения)
+# Max video duration in seconds (0 = unlimited)
 max_video_seconds = 0
-# Максимум пикселей картинки (ширина × высота), 0 = без ограничения
+# Max image pixels (width × height), 0 = unlimited
 max_image_pixels = 50000000
 
-# Доски. Добавляйте/удаляйте/редактируйте только здесь.
+# Boards. Add/remove/edit only here.
 [[boards]]
 short = "b"
 title = "Random"
-description = "Всё что угодно"
+description = "Everything and anything"
 nsfw = false
 thread_limit = 100
 bump_limit = 500
@@ -62,7 +61,7 @@ allowed_extensions = ["jpg", "jpeg", "png", "webp", "gif", "webm", "mp4"]
 [[boards]]
 short = "tech"
 title = "Technology"
-description = "Технологии и код"
+description = "Technology and code"
 nsfw = false
 thread_limit = 50
 bump_limit = 300
